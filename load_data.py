@@ -101,7 +101,30 @@ class DataGenerator(object):
 
         #############################
         #### YOUR CODE GOES HERE ####
-        pass
+        # Per batch 1
+        
+        #set_trace()
+        batch_response      =   []
+        batch_lbl_response  =   []
+        for _ibatch in range(batch_size):
+            paths   =   random.sample(folders, self.num_classes)
+            labels  =   [np.zeros(self.num_classes) for _ in range(self.num_classes)]
+            for i in range(len(labels)):
+                labels[i][i] = 1.0
+            _images_links = get_images(paths, labels, nb_samples=self.num_samples_per_class, shuffle=False)
+            _imgs   =   [image_file_to_array(filename, -1) for _, filename in _images_links]
+            _imgs_stack     =   [_imgs[idx:idx+self.num_samples_per_class] for idx in range(0, len(_imgs), self.num_samples_per_class)]
+            _imgs_stack     =   np.dstack(_imgs_stack)
+            _imgs_stack     =   np.transpose(_imgs_stack, (0, 2, 1))
+            _labels =   [_lab for _lab, _ in _images_links]
+            _labels_stack   =   [_labels[idx:idx+self.num_samples_per_class] for idx in range(0, len(_labels), self.num_samples_per_class)]
+            _labels_stack   =   np.dstack(_labels_stack)
+            _labels_stack   =   np.transpose(_labels_stack, (0, 2, 1))
+            batch_response.append(np.expand_dims(_imgs_stack, 0))
+            batch_lbl_response.append(np.expand_dims(_labels_stack, 0))
+        
+        all_image_batches   =   np.vstack(batch_response)
+        all_label_batches   =   np.vstack(batch_lbl_response)
         #############################
 
         return all_image_batches, all_label_batches
