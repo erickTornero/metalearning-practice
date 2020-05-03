@@ -4,7 +4,7 @@ import tensorflow as tf
 from load_data import DataGenerator
 from tensorflow.python.platform import flags
 from tensorflow.keras import layers
-
+from IPython.core.debugger import set_trace
 FLAGS = flags.FLAGS
 
 flags.DEFINE_integer(
@@ -26,9 +26,19 @@ def loss_function(preds, labels):
     Returns:
         scalar loss
     """
+    set_trace()
+    losses  =   []
+    for iclass in  range(labels.shape[-1]):
+        _predictions    =   preds[:, -1, iclass, :]
+        _labels         =   labels[:, -1, iclass, :]
+        loss            =   tf.losses.sigmoid_cross_entropy(_labels, _predictions)
+        tf.print(loss)
+        losses.append(loss)
+    finalloss   =   tf.add_n(losses)
+    return finalloss
     #############################
     #### YOUR CODE GOES HERE ####
-    pass
+    
     #############################
 
 
@@ -52,8 +62,19 @@ class MANN(tf.keras.Model):
         """
         #############################
         #### YOUR CODE GOES HERE ####
-        pass
+        #set_trace()
+
+        predicted_label =   []
+        ## Concatenate input
+        #input_labels[:, -1, :, :]   =   tf.math.scalar_mul(0.0, input_labels[:, -1, :, :])
+        input_concatenated = tf.concat((input_images, input_labels), -1)
+        
+        for i_class in range(self.num_classes):
+            x     =   self.layer1(input_concatenated[:,:,i_class,:])
+            x     =   self.layer2(x)  
+            predicted_label.append(x)
         #############################
+        out =   tf.stack(predicted_label, axis=2)
         return out
 
 ims = tf.placeholder(tf.float32, shape=(
