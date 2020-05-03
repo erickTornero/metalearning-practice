@@ -26,13 +26,13 @@ def loss_function(preds, labels):
     Returns:
         scalar loss
     """
-    set_trace()
+    #set_trace()
     losses  =   []
     for iclass in  range(labels.shape[-1]):
         _predictions    =   preds[:, -1, iclass, :]
         _labels         =   labels[:, -1, iclass, :]
         loss            =   tf.losses.sigmoid_cross_entropy(_labels, _predictions)
-        tf.print(loss)
+        #tf.print(loss)
         losses.append(loss)
     finalloss   =   tf.add_n(losses)
     return finalloss
@@ -77,40 +77,48 @@ class MANN(tf.keras.Model):
         out =   tf.stack(predicted_label, axis=2)
         return out
 
-ims = tf.placeholder(tf.float32, shape=(
-    None, FLAGS.num_samples + 1, FLAGS.num_classes, 784))
-labels = tf.placeholder(tf.float32, shape=(
-    None, FLAGS.num_samples + 1, FLAGS.num_classes, FLAGS.num_classes))
 
-data_generator = DataGenerator(
-    FLAGS.num_classes, FLAGS.num_samples + 1)
+def train():
+    ims = tf.placeholder(tf.float32, shape=(
+        None, FLAGS.num_samples + 1, FLAGS.num_classes, 784))
+    labels = tf.placeholder(tf.float32, shape=(
+        None, FLAGS.num_samples + 1, FLAGS.num_classes, FLAGS.num_classes))
 
-o = MANN(FLAGS.num_classes, FLAGS.num_samples + 1)
-out = o(ims, labels)
+    data_generator = DataGenerator(
+        FLAGS.num_classes, FLAGS.num_samples + 1)
 
-loss = loss_function(out, labels)
-optim = tf.train.AdamOptimizer(0.001)
-optimizer_step = optim.minimize(loss)
+    o = MANN(FLAGS.num_classes, FLAGS.num_samples + 1)
+    out = o(ims, labels)
 
-with tf.Session() as sess:
-    sess.run(tf.local_variables_initializer())
-    sess.run(tf.global_variables_initializer())
+    loss = loss_function(out, labels)
+    optim = tf.train.AdamOptimizer(0.001)
+    optimizer_step = optim.minimize(loss)
+    checkpoint_path = 'chpt_{}.ckpt'
 
-    for step in range(50000):
-        i, l = data_generator.sample_batch('train', FLAGS.meta_batch_size)
-        feed = {ims: i.astype(np.float32), labels: l.astype(np.float32)}
-        _, ls = sess.run([optimizer_step, loss], feed)
 
-        if step % 100 == 0:
-            print("*" * 5 + "Iter " + str(step) + "*" * 5)
-            i, l = data_generator.sample_batch('test', 100)
-            feed = {ims: i.astype(np.float32),
-                    labels: l.astype(np.float32)}
-            pred, tls = sess.run([out, loss], feed)
-            print("Train Loss:", ls, "Test Loss:", tls)
-            pred = pred.reshape(
-                -1, FLAGS.num_samples + 1,
-                FLAGS.num_classes, FLAGS.num_classes)
-            pred = pred[:, -1, :, :].argmax(2)
-            l = l[:, -1, :, :].argmax(2)
-            print("Test Accuracy", (1.0 * (pred == l)).mean())
+    with tf.Session() as sess:
+        sess.run(tf.local_variables_initializer())
+        sess.run(tf.global_variables_initializer())
+
+        for step in range(50000):
+            i, l = data_generator.sample_batch('train', FLAGS.meta_batch_size)
+            feed = {ims: i.astype(np.float32), labels: l.astype(np.float32)}
+            _, ls = sess.run([optimizer_step, loss], feed)
+
+            if step % 100 == 0:
+                print("*" * 5 + "Iter " + str(step) + "*" * 5)
+                i, l = data_generator.sample_batch('test', 100)
+                feed = {ims: i.astype(np.float32),
+                        labels: l.astype(np.float32)}
+                pred, tls = sess.run([out, loss], feed)
+                print("Train Loss:", ls, "Test Loss:", tls)
+                pred = pred.reshape(
+                    -1, FLAGS.num_samples + 1,
+                    FLAGS.num_classes, FLAGS.num_classes)
+                pred = pred[:, -1, :, :].argmax(2)
+                l = l[:, -1, :, :].argmax(2)
+                print("Test Accuracy", (1.0 * (pred == l)).mean())
+                o.save_weights(checkpoint_path.format(step))
+
+if __name__ == "__main__":
+    train()
